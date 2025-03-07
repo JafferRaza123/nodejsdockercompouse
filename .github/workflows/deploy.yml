@@ -50,8 +50,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             echo "Creating application directory..."
-            mkdir -p /home/${{ secrets.REMOTE_USER }}/nodejs-app
-            cd /home/${{ secrets.REMOTE_USER }}/nodejs-app
+            mkdir -p /home/${{ secrets.REMOTE_USER }}/nodejs-app2
+            cd /home/${{ secrets.REMOTE_USER }}/nodejs-app2
             
             echo "Pulling latest Docker image..."
             docker pull ${{ secrets.DOCKER_USERNAME }}/node-app2:latest
