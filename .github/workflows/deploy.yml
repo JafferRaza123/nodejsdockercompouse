@@ -1,0 +1,70 @@
+name: CI/CD Pipeline for Node.js with Docker Compose
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+  docker:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/node-app:latest .
+          docker push ${{ secrets.DOCKER_USERNAME }}/node-app:latest
+
+  deploy:
+    needs: docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Remote Server
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_NPRIVATE_KEY }}
+          script: |
+            cd /home/${{ secrets.REMOTE_USER }}/nodejs-app || mkdir /home/${{ secrets.REMOTE_USER }}/nodejs-app && cd /home/${{ secrets.REMOTE_USER }}/nodejs-app
+            echo "Pulling latest Docker image..."
+            docker pull ${{ secrets.DOCKER_USERNAME }}/node-app:latest
+            echo "Creating docker-compose.yml file..."
+            cat <<EOF > docker-compose.yml
+            version: "3.8"
+            services:
+              node-app:
+                image: ${{ secrets.DOCKER_USERNAME }}/node-app:latest
+                container_name: node-app
+                restart: unless-stopped
+                ports:
+                  - "3000:3000"
+                environment:
+                  - PORT=3000
+            EOF
+            echo "Restarting Docker Compose..."
+            docker-compose down
+            docker-compose up -d --force-recreate
