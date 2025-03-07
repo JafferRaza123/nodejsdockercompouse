@@ -47,11 +47,15 @@ jobs:
         with:
           host: ${{ secrets.REMOTE_HOST }}
           username: ${{ secrets.REMOTE_USER }}
-          key: ${{ secrets.SSH_NPRIVATE_KEY }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /home/${{ secrets.REMOTE_USER }}/nodejs-app || mkdir /home/${{ secrets.REMOTE_USER }}/nodejs-app && cd /home/${{ secrets.REMOTE_USER }}/nodejs-app
+            echo "Creating application directory..."
+            mkdir -p /home/${{ secrets.REMOTE_USER }}/nodejs-app
+            cd /home/${{ secrets.REMOTE_USER }}/nodejs-app
+            
             echo "Pulling latest Docker image..."
             docker pull ${{ secrets.DOCKER_USERNAME }}/node-app2:latest
+            
             echo "Creating docker-compose.yml file..."
             cat <<EOF > docker-compose.yml
             version: "3.8"
@@ -65,6 +69,8 @@ jobs:
                 environment:
                   - PORT=3000
             EOF
+            
             echo "Restarting Docker Compose..."
             docker-compose down
             docker-compose up -d --force-recreate
+
